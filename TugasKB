@@ -1,0 +1,151 @@
+from queue import PriorityQueue
+
+heuristic = {
+    "Magetan" : 162, 
+    "Surabaya" : 0,
+    "Ngawi" : 130,
+    "Ponorogo" : 128, 
+    "Madiun" : 126, 
+    "Bojonegoro" : 60,
+    "Nganjuk" : 70,
+    "Jombang" : 36,
+    "Lamongan" : 36, 
+    "Gresik" : 12, 
+    "Sidoarjo" : 22, 
+    "Probolinggo" : 70, 
+    "Situbondo" : 146, 
+    "Bangkalan" : 140,
+    "Sampang" : 90,
+    "Pamekasan" : 104, 
+    "Sumenep" : 150
+}
+
+peta = {
+    "Magetan" : ["Ponorogo", "Madiun", "Ngawi"],
+    "Ponorogo" : ["Magetan", "Madiun"],
+    "Madiun" : ["Magetan", "Ngawi", "Nganjuk"],
+    "Ngawi" : ["Magetan", "Madiun", "Bojonegoro"],
+    "Nganjuk" : ["Madiun", "Bojonegoro", "Jombang"],
+    "Bojonegoro" : ["Ngawi", "Nganjuk", "Jombang", "Lamongan"],
+    "Jombang" : ["Nganjuk", "Bojonegoro", "Surabaya"],
+    "Lamongan" : ["Bojonegoro", "Gresik"],
+    "Surabaya" : ["Gresik", "Jombang", "Bangkalan", "Sidoarjo"],
+    "Gresik" : ["Lamongan", "Surabaya"],
+    "Bangkalan" : ["Surabaya", "Sampang"],
+    "Sidoarjo" : ["Surabaya", "Probolinggo"],
+    "Sampang" : ["Bangkalan", "Pamekasan"],
+    "Probolinggo" : ["Sidoarjo", "Situbondo"],
+    "Pamekasan" : ["Sampang", "Sumenep"],
+    "Situbondo" : ["Probolinggo"],
+    "Sumenep" : ["Pamekasan"]
+}
+
+# cost dari setiap map
+graph = {
+    "Magetan": {"Ngawi": 32, "Madiun": 22, "Ponorogo": 34},
+    "Ngawi": {"Bojonegoro": 44, "Madiun": 30, "Magetan": 32},
+    "Ponorogo": {"Madiun": 29, "Magetan": 34},
+    "Madiun": {"Ngawi": 30, "Nganjuk": 48, "Magetan": 22, "Ponorogo": 29},
+    "Bojonegoro": {"Ngawi": 44, "Nganjuk": 33, "Jombang": 70, "Lamongan": 42},
+    "Nganjuk": {"Madiun": 48, "Bojonegoro": 33, "Jombang": 44},
+    "Jombang": {"Nganjuk": 40, "Bojonegoro": 70, "Surabaya": 72},
+    "Lamongan": {"Bojonegoro": 42, "Gresik": 14},
+    "Gresik": {"Lamongan": 14, "Surabaya": 12},
+    "Surabaya": {"Gresik": 12, "Jombang": 72, "Sidoarjo": 25, "Bangkalan": 44},
+    "Bangkalan": {"Surabaya": 44, "Sampang": 52},
+    "Sidoarjo": {"Surabaya": 25, "Probolinggo": 78},
+    "Sampang": {"Bangkalan": 52, "Pamekasan": 31},
+    "Probolinggo": {"Sidoarjo": 78, "Situbondo": 99},
+    "Pamekasan": {"Sampang": 31, "Sumenep": 54},
+    "Situbondo": {"Probolinggo": 99},
+    "Sumenep": {"Pamekasan": 54}
+}
+
+def gbfs(start, end):
+    
+    q = PriorityQueue()
+    
+    path = [start]
+    current = start 
+    
+    sum_heuristic = 0
+    
+    while(current != end):
+        for child in peta[current]:
+            if child not in path:
+                q.put((heuristic[child], child))
+        
+        value = q.get()
+        _, current = value
+        path.append(current)
+        
+        num, _ = value
+        sum_heuristic += num
+        
+        q.task_done()
+    
+    if path[0] == end : print("From:", start, "\nTo:", end, "\nShort path:", [], "\nTotal Heuristic:", sum_heuristic, "\nAlready in the goal state\n")
+    else : print("From:", start, "\nTo:", end, "\nShort path:", path, "\nTotal Heuristic:", sum_heuristic + heuristic[start], "\n")
+                
+gbfs("Magetan", "Surabaya")
+gbfs ("Jombang", "Surabaya")
+gbfs("Surabaya", "Surabaya")
+
+def jarak_h(current, goal, dictionary_h):
+    return dictionary_h[current]
+
+def a_star(graph, start, goal, fungsi_h):
+
+    g = {start: 0}
+    f = {start: fungsi_h(start, goal, heuristic)}
+    
+    visited = set() 
+    parent = {}
+
+    while f:
+     
+        current_node = min(f, key=f.get)
+
+        for neighbor, cost in graph[current_node].items():
+            if neighbor in visited:
+                continue
+            tentative_g = g[current_node] + cost
+            if neighbor not in f or tentative_g + fungsi_h(neighbor, goal, heuristic) < f[neighbor]:
+                g[neighbor] = tentative_g
+                f[neighbor] = tentative_g + fungsi_h(neighbor, goal, heuristic)
+                parent[neighbor] = current_node
+
+
+        if current_node == goal:
+            path = []
+            while current_node in parent:
+                path.append(current_node)
+                current_node = parent[current_node]
+            path.append(start)
+   
+            path.reverse()
+            return path
+
+        visited.add(current_node)
+        del f[current_node]
+
+    return None
+
+
+# untuk ngeprint
+def print_a_star(graph, start, goal, heuristic_func):
+    shortest_path = a_star(graph, start, goal, heuristic_func)
+    if shortest_path is not None:
+        distance = 0
+        path_info = []
+        for i in range(len(shortest_path) - 1):
+            distance += graph[shortest_path[i]][shortest_path[i + 1]]
+            path_info.append(f"{shortest_path[i]} -> {shortest_path[i+1]} ({graph[shortest_path[i]][shortest_path[i+1]]})")
+        print(f"The shortest path from {start} to {goal} is:\n{' -> '.join(shortest_path)}")
+        print(f"The distance is: {distance}")
+        print("Path Info:")
+        print('\n'.join(path_info))
+    else:
+        print(f"No path found from {start} to {goal}.")
+
+print_a_star(graph, "Magetan", "Surabaya", jarak_h)
